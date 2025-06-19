@@ -1,0 +1,234 @@
+openapi: 3.0.0
+info:
+  title: Wanderlust Travel API
+  description: RESTful API for hotel listings, user accounts, messaging, favorites, and avatar uploads.
+  version: 1.0.0
+
+tags:
+  - name: Auth
+    description: Authentication (register, login)
+  - name: Hotels
+    description: Hotel listing and management
+  - name: Favorites
+    description: Add/remove favorites
+  - name: Messages
+    description: User and operator messages
+  - name: Upload
+    description: Image uploads (avatar, hotel)
+
+servers:
+  - url: http://localhost:5000/api
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new user or operator
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - email
+                - password
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "201":
+          description: User registered
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login and receive a JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login successful
+
+  /hotels:
+    get:
+      tags:
+        - Hotels
+      summary: Get all hotels
+      responses:
+        "200":
+          description: List of hotels
+    post:
+      tags:
+        - Hotels
+      summary: Add a new hotel (admin only)
+      responses:
+        "201":
+          description: Hotel created
+
+  /hotels/{id}:
+    get:
+      tags:
+        - Hotels
+      summary: Get a hotel by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Hotel details
+    put:
+      tags:
+        - Hotels
+      summary: Update a hotel (admin only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Hotel updated
+    delete:
+      tags:
+        - Hotels
+      summary: Delete a hotel (admin only)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Hotel deleted
+
+  /favorites:
+    get:
+      tags:
+        - Favorites
+      summary: Get all favorite hotels of the user
+      responses:
+        "200":
+          description: List of favorites
+    post:
+      tags:
+        - Favorites
+      summary: Add a hotel to favorites
+      responses:
+        "201":
+          description: Added to favorites
+
+  /favorites/{id}:
+    delete:
+      tags:
+        - Favorites
+      summary: Remove a hotel from favorites
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Removed from favorites
+
+  /messages:
+    get:
+      tags:
+        - Messages
+      summary: Get all messages for the logged-in user/operator
+      responses:
+        "200":
+          description: List of messages
+    post:
+      tags:
+        - Messages
+      summary: Post a new message
+      responses:
+        "201":
+          description: Message created
+
+  /messages/{id}/reply:
+    post:
+      tags:
+        - Messages
+      summary: Operator replies to a message
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Reply added
+
+  /messages/{id}:
+    delete:
+      tags:
+        - Messages
+      summary: Delete a message
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Message deleted
+
+  /upload/avatar/{userId}:
+    post:
+      tags:
+        - Upload
+      summary: Upload a user avatar image
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Avatar uploaded
+
+  /upload/{hotelId}:
+    post:
+      tags:
+        - Upload
+      summary: Upload a hotel image
+      parameters:
+        - in: path
+          name: hotelId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Hotel image uploaded
