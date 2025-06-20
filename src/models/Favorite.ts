@@ -5,7 +5,7 @@ export interface IFavorite extends Document {
   hotel: mongoose.Types.ObjectId;
 }
 
-const favoriteSchema = new Schema<IFavorite>(
+const favoriteSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -21,4 +21,4 @@ const favoriteSchema = new Schema<IFavorite>(
   { timestamps: true }
 );
 
-export const Favorite = mongoose.model<IFavorite>('Favorite', favoriteSchema);
+export const Favorite = mongoose.model('Favorite', favoriteSchema);
