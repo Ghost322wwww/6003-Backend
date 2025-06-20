@@ -30,7 +30,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     await newUser.save();
 
     const token = jwt.sign(
-      { userId: newUser._id, role: newUser.role },
+      {  _id: newUser._id, role: newUser.role },
       JWT_SECRET,
       { expiresIn: '1d' }
     );
@@ -61,7 +61,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
       return;
     }
 
-    const token = jwt.sign({ userId: user._id, role: user.role }, JWT_SECRET, {
+    const token = jwt.sign({  _id: user._id, role: user.role }, JWT_SECRET, {
       expiresIn: '1d',
     });
 
