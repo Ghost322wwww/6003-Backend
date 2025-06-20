@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 
 export const addFavorite = async (req: any, res: Response): Promise<void> => {
   try {
-    const userId = req.user.userId;
+    const userId = new mongoose.Types.ObjectId(req.user._id);
     const { hotelId } = req.body;
 
     if (!mongoose.isValidObjectId(hotelId)) {
@@ -18,7 +18,11 @@ export const addFavorite = async (req: any, res: Response): Promise<void> => {
       return;
     }
 
-    const favorite = new Favorite({ user: userId, hotel: hotelId });
+    const favorite = new Favorite({
+      user: userId,
+      hotel: hotelId,
+    });
+
     await favorite.save();
 
     res.status(201).json({ message: 'Hotel added to favorites', favorite });
@@ -30,7 +34,7 @@ export const addFavorite = async (req: any, res: Response): Promise<void> => {
 
 export const getFavorites = async (req: any, res: Response): Promise<void> => {
   try {
-    const userId = req.user.userId;
+    const userId = new mongoose.Types.ObjectId(req.user._id);
 
     const favorites = await Favorite.find({ user: userId }).populate('hotel');
     res.status(200).json(favorites);
@@ -42,7 +46,7 @@ export const getFavorites = async (req: any, res: Response): Promise<void> => {
 
 export const removeFavorite = async (req: any, res: Response): Promise<void> => {
   try {
-    const userId = req.user.userId;
+    const userId = new mongoose.Types.ObjectId(req.user._id);
     const { id } = req.params;
 
     if (!mongoose.isValidObjectId(id)) {
@@ -57,13 +61,13 @@ export const removeFavorite = async (req: any, res: Response): Promise<void> => 
       return;
     }
 
-    if (favorite.user.toString() !== userId) {
+    if (favorite.user.toString() !== userId.toString()) {
       res.status(403).json({ message: 'Not authorized to delete this favorite' });
       return;
     }
 
     await Favorite.findByIdAndDelete(id);
-    res.status(200).json({ message: 'Favorite removed successfully' });
+    res.status(200).json({ message: 'Hotel removed from favorites' });
   } catch (error) {
     console.error('Remove favorite error:', error);
     res.status(500).json({ message: 'Failed to remove favorite' });
