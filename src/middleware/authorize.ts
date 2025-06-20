@@ -1,14 +1,13 @@
-import { Request, Response, NextFunction } from 'express';
+/// <reference path="../../types/express/index.d.ts" />
 
-export const authorizeRole = (requiredRole: 'operator' | 'user') => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const user = (req as any).user;
+import { RequestHandler } from 'express';
 
-    if (!user || user.role !== requiredRole) {
-      res.status(403).json({ error: 'Access denied: insufficient privileges' });
+export const authorizeRole = (role: 'operator' | 'user'): RequestHandler => {
+  return (req, res, next) => {
+    if (!req.user || req.user.role !== role) {
+      res.status(403).json({ message: 'Forbidden: insufficient permissions' });
       return;
     }
-
     next();
   };
 };
