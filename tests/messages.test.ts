@@ -1,35 +1,51 @@
 import request from 'supertest';
-import mongoose from 'mongoose';
 import app from '../src/app';
-import { User } from '../src/models/User';
-import { Message } from '../src/models/Message';
-import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'default_secret';
+const testUser = {
+  email: 'msguser@example.com',
+  username: 'msguser',
+  password: 'msgpassword123',
+  signupCode: 'TRAVEL123',
+};
 
 let token: string;
 let userId: string;
 let messageId: string;
+let hotelId: string;
 
 beforeAll(async () => {
-  // 這裡不要重複 connect，app.ts 已經做過了
-  await User.deleteMany({});
-  await Message.deleteMany({});
+  await request(app).post('/api/auth/register').send(testUser);
 
-  const user = new User({
-    username: 'testuser_msg',
-    email: 'testuser_msg@example.com',
-    password: 'hashedpassword',
-    role: 'user',
+  const loginRes = await request(app).post('/api/auth/login').send({
+    email: testUser.email,
+    password: testUser.password,
   });
-  await user.save();
-  userId = user._id.toString();
 
-  token = jwt.sign({ userId: user._id, role: 'user', _id: user._id }, JWT_SECRET, { expiresIn: '1d' });
-});
+  if (!loginRes.body.token) {
+    console.error('Unable to obtain token:', loginRes.body);
+    throw new Error('Login failed');
+  }
 
-afterAll(async () => {
-  await mongoose.connection.close();
+  token = loginRes.body.token;
+  userId = loginRes.body.user?._id || loginRes.body.user?.id;
+  console.log('🔐 token:', token);
+  console.log('👤 userId:', userId);
+
+  const hotelRes = await request(app)
+    .post('/api/hotels')
+    .set('Authorization', `Bearer ${token}`)
+    .send({
+      name: 'Test Hotel for Messaging',
+      location: 'Test City',
+      pricePerNight: 100,
+    });
+
+  console.log('🏨 hotelRes.body:', hotelRes.body);
+
+  hotelId = hotelRes.body.data?._id || hotelRes.body._id;
+
+  if (!hotelId) throw new Error('Failed to retrieve hotelId');
+  console.log('🏨 hotelId:', hotelId);
 });
 
 describe('Messages API', () => {
@@ -37,7 +53,12 @@ describe('Messages API', () => {
     const res = await request(app)
       .post('/api/messages')
       .set('Authorization', `Bearer ${token}`)
-      .send({ content: 'Hello!', recipientId: userId });
+      .send({
+        hotelId,
+        message: 'This is a test message for the hotel',
+      });
+
+    console.log('📨 SEND response:', res.body);
 
     expect(res.statusCode).toBe(201);
     expect(res.body.message).toBe('Message sent successfully');
@@ -51,15 +72,21 @@ describe('Messages API', () => {
       .get('/api/messages')
       .set('Authorization', `Bearer ${token}`);
 
+    console.log('GET response:', res.body);
+
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThanOrEqual(1);
   });
 
   it('should delete a message', async () => {
+    expect(messageId).toBeDefined();
+
     const res = await request(app)
       .delete(`/api/messages/${messageId}`)
       .set('Authorization', `Bearer ${token}`);
+
+    console.log('DELETE response:', res.body);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.message).toBe('Message deleted successfully');
