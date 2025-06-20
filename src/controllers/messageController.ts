@@ -2,9 +2,9 @@ import { Request, Response } from 'express';
 import { Message } from '../models/Message';
 import { Hotel } from '../models/Hotel';
 
-export const sendMessage = async (req: any, res: Response): Promise<void> => {
+export const sendMessage = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = (req as any).user?.id;
     const { hotelId, message } = req.body;
 
     if (!hotelId || !message) {
@@ -25,20 +25,20 @@ export const sendMessage = async (req: any, res: Response): Promise<void> => {
     });
 
     await newMessage.save();
-    res.status(201).json({ message: 'Message sent successfully' });
+
+    res.status(201).json({ message: 'Message sent successfully', data: newMessage });
   } catch (error) {
     console.error('❌ Error sending message:', error);
     res.status(500).json({ message: 'Failed to send message' });
   }
 };
 
-
-export const replyMessage = async (req: any, res: Response): Promise<void> => {
+export const replyMessage = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { reply } = req.body;
 
-    if (req.user?.role !== 'operator') {
+    if ((req as any).user?.role !== 'operator') {
       res.status(403).json({ message: 'Only operators can reply to messages' });
       return;
     }
@@ -59,9 +59,9 @@ export const replyMessage = async (req: any, res: Response): Promise<void> => {
   }
 };
 
-export const getMyMessages = async (req: any, res: Response): Promise<void> => {
+export const getMyMessages = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?.id;
+    const userId = (req as any).user?.id;
 
     const messages = await Message.find({ user: userId }).populate('hotel', 'name location');
     res.status(200).json(messages);
@@ -71,11 +71,11 @@ export const getMyMessages = async (req: any, res: Response): Promise<void> => {
   }
 };
 
-export const deleteMessage = async (req: any, res: Response): Promise<void> => {
+export const deleteMessage = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const userId = req.user?.id;
-    const role = req.user?.role;
+    const userId = (req as any).user?.id;
+    const role = (req as any).user?.role;
 
     const msg = await Message.findById(id);
     if (!msg) {
