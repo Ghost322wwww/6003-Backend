@@ -73,7 +73,7 @@
     // "noEmitOnError": true,                            /* Disable emitting files if any type checking errors are reported. */
     // "preserveConstEnums": true,                       /* Disable erasing 'const enum' declarations in generated code. */
     // "declarationDir": "./",                           /* Specify the output directory for generated declaration files. */
-    "typeRoots": ["./node_modules/@types", "./types"],
+    "typeRoots": ["./node_modules/@types", "./src/types"],
     "types": ["jest", "node"],
     /* Interop Constraints */
     // "isolatedModules": true,                          /* Ensure that each file can be safely transpiled without relying on other imports. */
