@@ -1,53 +1,45 @@
 import request from 'supertest';
-import mongoose from 'mongoose';
 import app from '../src/app';
-import { Hotel } from '../src/models/Hotel';
-import { User } from '../src/models/User';
+import mongoose from 'mongoose';
 
-describe('Hotel API', () => {
-  let token: string;
-  let hotelId: string;
+let token: string;
+let hotelId: string;
 
-  const testUser = {
-    email: 'hoteltester@example.com',
-    password: 'Test1234',
-    username: 'hoteltester',
-    signupCode: 'TRAVEL123',
-  };
-
-  const hotelData = {
-    name: 'Test Hotel',
-    description: 'A lovely hotel',
-    location: 'Test City',
-    pricePerNight: 150,
-    imageUrls: ['https://example.com/img1.jpg'],
-  };
-
-  beforeAll(async () => {
-    await User.deleteMany({ email: testUser.email });
-    await Hotel.deleteMany({ title: hotelData.name });
-
-    await request(app).post('/api/auth/register').send(testUser);
-    const loginRes = await request(app).post('/api/auth/login').send({
-      email: testUser.email,
-      password: testUser.password,
+beforeAll(async () => {
+  const uniqueSuffix = Date.now();
+  const res = await request(app)
+    .post('/api/auth/register')
+    .send({
+      email: `operator${uniqueSuffix}@test.com`,
+      password: 'password',
+      username: `operator${uniqueSuffix}`,
+      signupCode: 'TRAVEL123',
     });
 
-    token = loginRes.body.token;
-  });
+  token = res.body.token;
+});
 
+afterAll(async () => {
+  await mongoose.disconnect();
+});
+
+describe('Hotel API', () => {
   it('should create a new hotel (auth required)', async () => {
+    const hotelData = {
+      name: 'Test Hotel',
+      location: 'Test City',
+      pricePerNight: 150,
+    };
+
     const res = await request(app)
       .post('/api/hotels')
       .set('Authorization', `Bearer ${token}`)
       .send(hotelData);
-      console.log('CREATE HOTEL:', res.body); 
 
+    console.log('CREATE HOTEL:', res.body);
     expect(res.statusCode).toBe(201);
     expect(res.body).toHaveProperty('_id');
     expect(res.body.name).toBe(hotelData.name);
-
-
     hotelId = res.body._id;
   });
 
@@ -58,16 +50,14 @@ describe('Hotel API', () => {
   });
 
   it('should delete a hotel (auth required)', async () => {
+    expect(hotelId).toBeDefined();
+
     const res = await request(app)
       .delete(`/api/hotels/${hotelId}`)
       .set('Authorization', `Bearer ${token}`);
-      console.log('DELETE HOTEL:', res.body);
 
+    console.log('DELETE HOTEL:', res.body);
     expect(res.statusCode).toBe(200);
     expect(res.body.message).toBe('Hotel deleted successfully');
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.close();
   });
 });
