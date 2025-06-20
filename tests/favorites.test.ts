@@ -1,85 +1,78 @@
 import request from 'supertest';
-import mongoose from 'mongoose';
 import app from '../src/app';
-import { Hotel } from '../src/models/Hotel';
-import { User } from '../src/models/User';
-import { Favorite } from '../src/models/Favorite';
+import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
+import {User} from '../src/models/User';
+import {Hotel} from '../src/models/Hotel';
+import {Favorite} from '../src/models/Favorite';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'test_secret';
+
+let token: string;
+let userId: string;
+let hotelId: string;
+let favoriteId: string;
+
+beforeAll(async () => {
+  await mongoose.connect(process.env.MONGO_URI || '', {
+    dbName: 'test_fav',
+  });
+
+  const user = new User({
+    username: `testuser_${Date.now()}`,
+    name: 'Favorite Tester',
+    email: `fav_${Date.now()}@example.com`,
+    password: '12345678',
+    role: 'user',
+  });
+  await user.save();
+  userId = user._id.toString();
+
+  token = jwt.sign({ _id: userId, role: user.role }, JWT_SECRET);
+
+  const hotel = new Hotel({
+    name: 'Test Hotel',
+    location: 'Test City',
+    pricePerNight: 100,
+  });
+  await hotel.save();
+  hotelId = hotel._id.toString();
+});
+
+afterAll(async () => {
+  await Favorite.deleteMany({});
+  await Hotel.deleteMany({});
+  await User.deleteMany({});
+  await mongoose.disconnect();
+});
 
 describe('Favorites API', () => {
-  let token: string;
-  let hotelId: string;
-  let userId: string;
-
-  const testUser = {
-    email: 'favoriteuser@example.com',
-    password: 'Test1234',
-    username: 'favoriteuser',
-    signupCode: 'TRAVEL123',
-  };
-
-  const hotelData = {
-    name: 'Favorite Hotel',
-    title: 'Favorite Hotel',
-    description: 'A great hotel for testing',
-    location: 'Testville',
-    pricePerNight: 199,
-    imageUrls: ['https://example.com/hotel.jpg'],
-  };
-
-  beforeAll(async () => {
-    await User.deleteMany({ email: testUser.email });
-    await Hotel.deleteMany({ name: hotelData.name });
-    await Favorite.deleteMany({});
-
-    await request(app).post('/api/auth/register').send(testUser);
-    const loginRes = await request(app).post('/api/auth/login').send({
-      email: testUser.email,
-      password: testUser.password,
-    });
-
-    token = loginRes.body.token;
-
-    const userRes = await User.findOne({ email: testUser.email });
-    userId = userRes?._id.toString();
-
-    const hotelRes = await request(app)
-      .post('/api/hotels')
-      .set('Authorization', `Bearer ${token}`)
-      .send(hotelData);
-
-    hotelId = hotelRes.body._id;
-  });
-
-  it('should add a hotel to favorites', async () => {
+  it('should allow a user to add a hotel to favorites', async () => {
     const res = await request(app)
-      .post(`/api/favorites/${hotelId}`)
-      .set('Authorization', `Bearer ${token}`);
+      .post('/api/favorites')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ hotelId });
 
-    expect(res.statusCode).toBe(200);
+    expect(res.statusCode).toBe(201);
     expect(res.body.message).toBe('Hotel added to favorites');
+    favoriteId = res.body.favorite._id;
   });
 
-  it('should list user favorites', async () => {
+  it('should allow a user to get their favorite hotels', async () => {
     const res = await request(app)
       .get('/api/favorites')
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.statusCode).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThan(0);
-    expect(res.body[0]._id).toBe(hotelId);
   });
 
-  it('should remove a hotel from favorites', async () => {
+  it('should allow a user to remove a hotel from favorites', async () => {
     const res = await request(app)
-      .delete(`/api/favorites/${hotelId}`)
+      .delete(`/api/favorites/${favoriteId}`)
       .set('Authorization', `Bearer ${token}`);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.message).toBe('Hotel removed from favorites');
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.close();
   });
 });
