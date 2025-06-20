@@ -78,11 +78,12 @@ export const updateHotel = async (req: Request, res: Response): Promise<void> =>
 };
 
 
-export const deleteHotel = async (req: Request, res: Response) => {
+export const deleteHotel = async (req: Request, res: Response): Promise<void> => {
   try {
     const deletedHotel = await Hotel.findByIdAndDelete(req.params.id);
     if (!deletedHotel) {
-      return res.status(404).json({ message: 'Hotel not found' }); // ✅ 加上 return
+      res.status(404).json({ message: 'Hotel not found' });
+      return;
     }
     res.status(200).json({ message: 'Hotel deleted successfully' });
   } catch (error) {
