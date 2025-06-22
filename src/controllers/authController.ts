@@ -43,6 +43,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         username: newUser.username,
         role: newUser.role,
         email: newUser.email,
+        avatar: newUser.avatar || "",
       },
     });
   } catch (err) {
@@ -82,6 +83,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
         username: user.username,
         role: user.role,
         email: user.email,
+        avatar: user.avatar || "",
       },
     });
   } catch (err) {
@@ -90,3 +92,19 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
+export const updateProfile = async (req: any, res: Response) => {
+  try {
+    const userId = req.user.id;
+    const updateData: any = {};
+    if (req.body.username) updateData.username = req.body.username;
+    if (req.body.password) updateData.password = await bcrypt.hash(req.body.password, 10);
+    if (req.file) updateData.avatar = `/uploads/${req.file.filename}`;
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true });
+    res.status(200).json({ message: 'Profile updated', user: updatedUser });
+  } catch (err: any) {
+    res.status(500).json({ message: 'Failed to update profile', error: err.message });
+  }
+};
+

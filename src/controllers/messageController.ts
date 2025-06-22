@@ -2,6 +2,10 @@ import { Request, Response } from 'express';
 import { Message } from '../models/Message';
 import { Hotel } from '../models/Hotel';
 
+const logError = (error: any, action: string) => {
+  console.error(`Error during ${action}:`, error);
+};
+
 export const sendMessage = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).user?.id;
@@ -28,7 +32,7 @@ export const sendMessage = async (req: Request, res: Response): Promise<void> =>
 
     res.status(201).json({ message: 'Message sent successfully', data: newMessage });
   } catch (error) {
-    console.error('❌ Error sending message:', error);
+    logError(error, 'sending message');
     res.status(500).json({ message: 'Failed to send message' });
   }
 };
@@ -54,22 +58,11 @@ export const replyMessage = async (req: Request, res: Response): Promise<void> =
 
     res.status(200).json({ message: 'Reply saved successfully', data: msg });
   } catch (error) {
-    console.error('❌ Error replying to message:', error);
+    logError(error, 'replying to message');
     res.status(500).json({ message: 'Failed to reply to message' });
   }
 };
 
-export const getMyMessages = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const userId = (req as any).user?.id;
-
-    const messages = await Message.find({ user: userId }).populate('hotel', 'name location');
-    res.status(200).json(messages);
-  } catch (error) {
-    console.error('❌ Error retrieving messages:', error);
-    res.status(500).json({ message: 'Failed to retrieve messages' });
-  }
-};
 
 export const deleteMessage = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -91,7 +84,43 @@ export const deleteMessage = async (req: Request, res: Response): Promise<void> 
     await msg.deleteOne();
     res.status(200).json({ message: 'Message deleted successfully' });
   } catch (error) {
-    console.error('❌ Error deleting message:', error);
+    logError(error, 'deleting message');
     res.status(500).json({ message: 'Failed to delete message' });
   }
 };
+
+export const getMyMessages = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).user?.id;
+
+    const messages = await Message.find({ user: userId })
+      .populate('user', 'username role')  
+      .populate('hotel', 'name location')
+      .select('message reply hotel user createdAt'); // 加上 reply
+
+    res.status(200).json(messages);
+  } catch (error) {
+    logError(error, 'retrieving user messages');
+    res.status(500).json({ message: 'Failed to retrieve messages' });
+  }
+};
+
+export const getAllMessages = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if ((req as any).user?.role !== 'operator') {
+      res.status(403).json({ message: 'Only operators can view all messages' });
+      return;
+    }
+
+    const messages = await Message.find()
+      .populate('user', 'username role')
+      .populate('hotel', 'name location')
+      .select('message reply user hotel createdAt'); // 加上 reply
+
+    res.status(200).json(messages);
+  } catch (error) {
+    logError(error, 'retrieving all messages');
+    res.status(500).json({ message: 'Failed to retrieve messages' });
+  }
+};
+

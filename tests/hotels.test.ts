@@ -61,3 +61,49 @@ describe('Hotel API', () => {
     expect(res.body.message).toBe('Hotel deleted successfully');
   });
 });
+
+describe('Hotel API - unauthorized user restrictions', () => {
+  let userToken: string;
+
+  beforeAll(async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: `user${Date.now()}@test.com`,
+        password: 'password',
+        username: `user${Date.now()}`
+      });
+
+    userToken = res.body.token;
+  });
+
+  it('should NOT allow a regular user to add a hotel', async () => {
+    const res = await request(app)
+      .post('/api/hotels')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({
+        name: 'Unauthorized Hotel',
+        location: 'Nowhere',
+        pricePerNight: 100,
+      });
+
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('should NOT allow a regular user to delete a hotel', async () => {
+    const res = await request(app)
+      .delete('/api/hotels/someHotelId')
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('should NOT allow a regular user to update a hotel', async () => {
+    const res = await request(app)
+      .put('/api/hotels/someHotelId')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ name: 'Updated Name' });
+
+    expect(res.statusCode).toBe(403);
+  });
+});
